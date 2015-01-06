@@ -54,7 +54,11 @@ fn main(){
 			println!("Found solution {} {} {}", a.a, a.b, a.set );	
 			
 			a_count += 1;
-			for b in v.iter().skip(a_count){
+			for b in v.iter(){
+				if a.set == b.set{
+					continue;
+				}
+				
 				if a.set.is_subset(&b.set){
 					let solution = Solutions_struc{ a: a.a.to_string(), b: b.b.to_string(), set_length: a.set_length, set: a.set.clone() };
 					all_sub_solutions.push(solution);
