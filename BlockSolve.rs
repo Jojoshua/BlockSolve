@@ -4,32 +4,29 @@ use std::io::BufferedReader;
 use std::collections::HashSet;
 use std::collections::HashMap;
 
-struct SolutionsStruc{
-	protein: String,		
-	length: uint,
-	set: HashSet<uint>
+#[derive(Hash, Eq, PartialEq, Show)]
+struct PMap {
+    protein: String,
+    set_ref: uint,
 }
 	
 fn main(){
-	let mut solutions_map: HashMap<String,Vec<SolutionsStruc>> = HashMap::new();
-
-	let mut all_sub_solutions: Vec<SolutionsStruc> = vec![];
+	let mut all_sets: HashMap<uint,HashSet<uint>> = HashMap::new();	
+	let mut p_map: HashSet<PMap> = HashSet::new();		
 	
 	let mut main_map = HashMap::new();
 	load_input(&mut main_map);
 	
-	for a in main_map.iter(){	
+	
+/* 	for a in main_map.iter(){	
 		println!("Original sequence {}", a );	
-	}
+	} */
 	
 	let mut a_count: uint = 0;		
 	for (a_k, a_v) in main_map.iter(){		
 		a_count += 1;
-		//println!("\n A: {}, {}", a_k , a_v );
-		let mut all_solutions: Vec<SolutionsStruc> = vec![];
+		//println!("\n A: {}, {}", a_k , a_v );	
 		
-		println!("\n");
-	
 		for (b_k, b_v) in main_map.iter().skip(a_count){						
 			//println!(" B: {}, {}", b_k , b_v );
 			
@@ -40,159 +37,95 @@ fn main(){
 			let intersection : HashSet<uint> = a_v.intersection(b_v).map(|&x| x).collect();
 			if intersection.len() > 1{
 				//println!("{} {} {}", a_k, b_k, intersection );
-				
-				println!("Found solution {} {}", a_k, intersection );
-				println!(" Found solution {} {}", b_k, intersection );
-				
-				insert_solution(a_k,&intersection,&mut all_solutions);
-				insert_solution(b_k,&intersection,&mut all_solutions);
-				
-				//let mut solution = SolutionsStruc{ protein: a_k.to_string(), length: intersection.len(), set: intersection };
-				//all_solutions.push(solution);				
-				
-				//solution = SolutionsStruc{ protein: b_k.to_string(), length: intersection.len(), set: intersection };				
-				//all_solutions.push(solution);
+				insert_p_map(a_k, &intersection, &mut p_map,&mut all_sets);	
+				insert_p_map(b_k, &intersection, &mut p_map,&mut all_sets);	
 			}						
+		}						
+	}
+	
+	find_sub_sets(&all_sets,&mut p_map);
+	
+	for n in p_map.iter(){
+		println!("P Map {} {}", n.protein, n.set_ref );
+	}
+	
+	for (k,v) in all_sets.iter(){
+		println!("All Set {} {}", k, v );	
+	}			
+	
+	//Print how many of each set there are
+	let mut unique_set_count: HashSet<uint> = HashSet::new();
+	for a in p_map.iter(){
+		let mut count = 0u;
+		if unique_set_count.contains(&a.set_ref){
+			continue;
 		}
+		unique_set_count.insert(a.set_ref);
 		
-		//Find sub solutions
-		find_sub_solutions(&mut all_solutions);
-		
-		solutions_map.insert(a_k.to_string(),all_solutions);	
-/* 
-		println!("\n");
-		for (k,v) in solutions_map.iter(){
-			for n in v.iter(){
-				println!("Found solution {} {}", k, n.set );	
+		let mut proteins: HashSet<String> = HashSet::new();
+		for b in p_map.iter(){
+			if a.set_ref == b.set_ref{
+				count+=1;
+				proteins.insert(b.protein.to_string());
 			}
-		} */
-		
+		}		
+		println!("Set {} Count {} Proteins {}", a.set_ref ,count, proteins);
 	}
 	
-/* 	for (k,v) in solutions_map.iter(){
-		println!("\n{}", k );
-		for a in v.iter(){
-			println!("Found solution {} {} {}", a.a, a.b, a.set );	
-			
-			a_count += 1;
-			for b in v.iter(){
-				if a.set == b.set || a.length > b.length{
-					continue;
-				}
-								
-				if a.set.is_subset(&b.set){
-					let solution = SolutionsStruc{ a: a.a.to_string(), b: b.b.to_string(), length: a.length, set: a.set.clone() };
-					all_sub_solutions.push(solution);
-					
-					println!("Found sub solution {} {} {}", a.a, b.b, a.set );	
-				}	
-			}
-		}	
-	} */
-	
-/* 	for (k,v) in solutions_map.iter(){
-		for a in v.iter(){
-			println!("Found sub solution {} {} {}", a.a, a.b, a.set );			
-		}	
-	}
-	
-	for n in all_sub_solutions.iter(){
-		println!("Found sub solution {} {} {}", n.a, n.b, n.set );
-	} */
-	
-	
-		
-	
-		
-/*  	let mut duplicate = HashSet::new();
-	duplicate.insert(25);
-	duplicate.insert(39);
-	duplicate.insert(30);
-	duplicate.insert(47);	
-	let mut solution = SolutionsStruc{ a: "Dummy A".to_string(), b: "Dummy B".to_string(), length: duplicate.len(), set: duplicate };
-	all_solutions.push(solution);
-	
-	duplicate = HashSet::new();
-	duplicate.insert(19);
-	duplicate.insert(18);
-	duplicate.insert(33);
-	duplicate.insert(4);	
-	duplicate.insert(6);	
-	solution = SolutionsStruc{ a: "Dummy A".to_string(), b: "Dummy B".to_string(), length: duplicate.len(), set: duplicate };
-	all_solutions.push(solution); */
+}
 
+ //Insert or Update master list of sets and return the reference number to the set
+ fn modify_set_ref(set: &HashSet<uint>, all_sets: &mut HashMap<uint,HashSet<uint>>) -> uint{
+	let ref_num;
 	
-	//println!("\nNumber of blocks {}", all_solutions.len() );	
-		
-	//Get unique blocks
-/* 	let mut dup = false;
-	let mut set_count = 0u;
-	a_count = 0;
-	for a in all_solutions.iter(){	
-		a_count += 1;	
-		set_count = 0;
-		dup = false;
-		for b in all_solutions.iter().skip(a_count){			
-			if a.set == b.set{
-				println!("Found Duplicate {} at index {}", b.set, set_count + a_count );
-				dup = true;	
-				break;
-			}				
-			set_count += 1;			
+	for (k,v) in all_sets.iter(){
+		if *v == *set{			
+			return *k;
 		}
+	}
+	
+	ref_num = all_sets.len() + 1;	
+	all_sets.insert(ref_num,set.clone());	
+	return ref_num;	
+} 
+
+fn insert_p_map(protein: &String, set: &HashSet<uint>, p_map: &mut HashSet<PMap>, all_sets: &mut HashMap<uint,HashSet<uint>>){
+	let set_ref = modify_set_ref(set,all_sets);
 		
-		if	dup == false{
-			unique_sets.push(&a.set);
-		}
+	p_map.insert(PMap { protein: protein.to_string(), set_ref: set_ref });		
+}
+
+fn find_sub_sets(all_sets: &HashMap<uint,HashSet<uint>>, p_map: &mut HashSet<PMap>){
+	for (a_k,a_v) in all_sets.iter(){
+		let a_len = a_v.len();	
+		
+		for (b_k,b_v) in all_sets.iter(){
+			if a_len < b_v.len(){
+				if a_v.is_subset(b_v){
+					add_sub_set(a_k,b_k,p_map);						
+				}				
+			}			
+		}		
 	}	
- 	println!("\nNumber of Unique Blocks {}", unique_sets.len() ); */
-	
-/* 	for n in unique_sets.iter(){
-		println!("Unique Block {}", n );	
-	}  */
-			
 }
 
-fn insert_solution(protein: &String, set: &HashSet<uint>, all_solutions: &mut Vec<SolutionsStruc>){	
-	let solution = SolutionsStruc{ protein: protein.to_string(), length: set.len(), set: set.clone() };
-	all_solutions.push(solution);	
-}
+fn add_sub_set(subset: &uint, superset: &uint, p_map: &mut HashSet<PMap>){
+	let mut tmp_p_map: HashSet<PMap> = HashSet::new();
 
-fn contains_solution(all_solutions: &Vec<SolutionsStruc>, solution: &SolutionsStruc) -> bool{
-	for n in all_solutions.iter(){
-		if n.set == solution.set{
-			return true;
-		}
-	}
-	return false;
-}
-fn find_sub_solutions(all_solutions: &mut Vec<SolutionsStruc>){
-	let mut all_sub_solutions: Vec<SolutionsStruc> = vec![];
-
-	for a in all_solutions.iter(){
-		//println!("Found solution {} {} {}", a.a, a.b, a.set );	
-	
-		for b in all_solutions.iter(){
-			//Only attempt finding a subset if the length of "a" is less than than my length "b" and it is not me
-			if a.set == b.set || a.length >= b.length || contains_solution(&all_sub_solutions,a){
-				continue;
-			}					
-							
-			if a.set.is_subset(&b.set){
-				let solution = SolutionsStruc{ protein: b.protein.to_string(), length: a.length, set: a.set.clone() };
-				all_sub_solutions.push(solution);
-				
-				println!("Found sub solution {} {}", b.protein, a.set);					
-			}	
+	//Find subsets within the original sets that were found for this protein
+	for n in p_map.iter(){
+		if n.set_ref == *superset{
+			//Add to p_map with subset ref as well
+			//println!("Found subset protein:{} subset_ref:{} superset:{}", n.protein, subset,superset);
+			tmp_p_map.insert(PMap { protein: n.protein.to_string(), set_ref: *subset });
 		}
 	}
 	
-	//Add the subsets into the main set
-	for n in all_sub_solutions.drain(){
-		all_solutions.push(n);
+	for n in tmp_p_map.drain(){
+		p_map.insert(n);
 	}
-	
 }
+
 
 fn load_input(main_map: &mut HashMap<String,HashSet<uint>>){
 	// Create a path to the desired file
