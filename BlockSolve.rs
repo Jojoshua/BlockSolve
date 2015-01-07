@@ -5,18 +5,17 @@ use std::collections::HashSet;
 use std::collections::HashMap;
 
 fn main(){
-	let mut solutions_map: HashMap<String,Vec<Solutions_struc>> = HashMap::new();
+	let mut solutions_map: HashMap<String,Vec<SolutionsStruc>> = HashMap::new();
 
-	struct Solutions_struc{
+	struct SolutionsStruc{
 		a: String,
 		b: String,
 		set_length: uint,
 		set: HashSet<uint>
 	}
 	
-	let mut all_sub_solutions: Vec<Solutions_struc> = vec![];
-
-	let mut unique_sets: Vec<&HashSet<uint>> = vec![];
+	let mut all_sub_solutions: Vec<SolutionsStruc> = vec![];
+	
 	let mut main_map = HashMap::new();
 	load_input(&mut main_map);
 	
@@ -28,7 +27,7 @@ fn main(){
 	for (a_k, a_v) in main_map.iter(){		
 		a_count += 1;
 		//println!("\n A: {}, {}", a_k , a_v );
-		let mut all_solutions: Vec<Solutions_struc> = vec![];
+		let mut all_solutions: Vec<SolutionsStruc> = vec![];
 	
 		for (b_k, b_v) in main_map.iter().skip(a_count){						
 			//println!(" B: {}, {}", b_k , b_v );
@@ -41,7 +40,7 @@ fn main(){
 			if intersection.len() > 1{
 				println!("{} {} {}", a_k, b_k, intersection );				
 				//all_sets.push(intersection);				
-				let solution = Solutions_struc{ a: a_k.to_string(), b: b_k.to_string(), set_length: intersection.len(), set: intersection };
+				let solution = SolutionsStruc{ a: a_k.to_string(), b: b_k.to_string(), set_length: intersection.len(), set: intersection };
 				all_solutions.push(solution);
 			}						
 		}
@@ -50,17 +49,18 @@ fn main(){
 	}
 	
 	for (k,v) in solutions_map.iter(){
+		println!("\n{}", k );
 		for a in v.iter(){
 			println!("Found solution {} {} {}", a.a, a.b, a.set );	
 			
 			a_count += 1;
 			for b in v.iter(){
-				if a.set == b.set{
+				if a.set == b.set || a.set_length > b.set_length{
 					continue;
 				}
-				
+								
 				if a.set.is_subset(&b.set){
-					let solution = Solutions_struc{ a: a.a.to_string(), b: b.b.to_string(), set_length: a.set_length, set: a.set.clone() };
+					let solution = SolutionsStruc{ a: a.a.to_string(), b: b.b.to_string(), set_length: a.set_length, set: a.set.clone() };
 					all_sub_solutions.push(solution);
 					
 					println!("Found sub solution {} {} {}", a.a, b.b, a.set );	
@@ -88,7 +88,7 @@ fn main(){
 	duplicate.insert(39);
 	duplicate.insert(30);
 	duplicate.insert(47);	
-	let mut solution = Solutions_struc{ a: "Dummy A".to_string(), b: "Dummy B".to_string(), set_length: duplicate.len(), set: duplicate };
+	let mut solution = SolutionsStruc{ a: "Dummy A".to_string(), b: "Dummy B".to_string(), set_length: duplicate.len(), set: duplicate };
 	all_solutions.push(solution);
 	
 	duplicate = HashSet::new();
@@ -97,7 +97,7 @@ fn main(){
 	duplicate.insert(33);
 	duplicate.insert(4);	
 	duplicate.insert(6);	
-	solution = Solutions_struc{ a: "Dummy A".to_string(), b: "Dummy B".to_string(), set_length: duplicate.len(), set: duplicate };
+	solution = SolutionsStruc{ a: "Dummy A".to_string(), b: "Dummy B".to_string(), set_length: duplicate.len(), set: duplicate };
 	all_solutions.push(solution); */
 
 	
