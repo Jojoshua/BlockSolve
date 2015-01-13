@@ -1,0 +1,13 @@
+[package]
+
+name = "BlockSolve"
+version = "0.0.1"
+authors = [ "Your name <you@example.com>" ]
+
+
+[[bin]]
+name = "BlockSolve"
+
+[dependencies]
+time = "*"
+
