@@ -1,0 +1,11 @@
+     Running `..\target\BlockSolve`
+Load Input File - 1.315298
+Round 1 - 446.986126
+Round One Done
+Round 2 - 90.080976
+Round Two Done
+Summary: Blocks Found 2410 
+
+Sort & Summarize - 19.826176
+Total Time - 558.318531
+Configuration: Config { split_by: 300, thread_limit: 200, thread_check_timer: 1000, input_path: "../input/input.txt", print_blocks: false }

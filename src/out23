@@ -1,0 +1,11 @@
+   Compiling BlockSolve v0.0.1 (file:///C:/Users/HARRIS/Desktop/BlockSolve)
+     Running `..\target\BlockSolve`
+Load Input File - 1.259496
+5 threads for round one done
+Round 1 - -6086.307011
+Round 2 - 185.684448
+Sort & Summarize - 36.324059
+Summary: Blocks Found 2410 
+
+Total Time - -5862.941188
+Configuration: Config { split_by: 5, thread_limit: 90, thread_check_timer: 200, input_path: "../input/input.txt", print_blocks: false }

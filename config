@@ -1,0 +1,5 @@
+input_path:../input/input.txt
+split_by:15
+round_one_wait_interval_s:30
+conserve_memory_at_cost_of_speed:false
+print_blocks:true
