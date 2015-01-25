@@ -456,9 +456,9 @@ fn main(){
 			//println!("End Thread - Started at {} take {} active threads {} \n", start_at , take, thread.active_count);
 		} 	
 		
-	});	
-	
+	});		
 }
+
 
 fn load_input(main_map: &mut HashMap<usize,HashSet<usize>>, config:&Config){
 	// Create a path to the desired file
