@@ -17,7 +17,8 @@ struct MyThreads{
 
 #[derive (Show,Clone)]
 struct Config{
-	split_by: usize,
+	split_by_main: usize,
+	split_by_subs: usize,
 	round_one_wait_interval: i64,
 	input_path: String,		
 	print_blocks:bool,
@@ -36,7 +37,8 @@ impl Config {
 		
 		let mut file = BufferedReader::new(ofile);
 		
-		let mut split_by: usize = 0;
+		let mut split_by_main: usize = 0;
+		let mut split_by_subs: usize = 0;
 		let mut	round_one_wait_interval: i64 = 0;
 		let mut	input_path: String = String::new();
 		let mut print_blocks: bool = false;
@@ -52,8 +54,10 @@ impl Config {
 					config_item = line.slice(0,x);	
 					config_value = line.slice(x+1,line.len());
 					
-					if config_item == "split_by"{
-						split_by = config_value.as_slice().trim().parse::<usize>().unwrap();	
+					if config_item == "split_by_main"{
+						split_by_main = config_value.as_slice().trim().parse::<usize>().unwrap();	
+					} else if config_item == "split_by_subs"{
+						split_by_subs = config_value.as_slice().trim().parse::<usize>().unwrap();	
 					}else if config_item == "round_one_wait_interval_s"{
 						round_one_wait_interval = config_value.as_slice().trim().parse::<i64>().unwrap();					
 					}else if config_item == "input_path"{
@@ -68,7 +72,7 @@ impl Config {
 			}	
 		}
 		
-		Config{split_by:split_by,round_one_wait_interval:round_one_wait_interval,input_path:input_path,print_blocks:print_blocks,conserve_memory_at_cost_of_speed:conserve_memory_at_cost_of_speed}
+		Config{split_by_main:split_by_main,round_one_wait_interval:round_one_wait_interval,input_path:input_path,print_blocks:print_blocks,conserve_memory_at_cost_of_speed:conserve_memory_at_cost_of_speed,split_by_subs:split_by_subs}
     }
 }
 
@@ -105,7 +109,7 @@ struct MTimer<'a> {
 	
 fn main(){
 	let mut total_timer: MTimer = MTimer::new("Total Time");
-	let config: Config = Config::new();	
+	let config: Config = Config::new();		
 	
 	let mut timer = Timer::new().unwrap();	
 	let set_counter = Arc::new(AtomicUsize::new(0));
@@ -130,21 +134,21 @@ fn main(){
 		
 	let thread_info =  Arc::new(RwLock::new(MyThreads{active_count:0,finished_count:0}));	
 	
-	let mut split_by = config.split_by.clone();
+	let mut split_by_main = config.split_by_main.clone();
 	let mut start_at = 0;
 	let mut count = 0;	
-	let take = if num_items <= split_by { 
-				  split_by = 1;				  
+	let mut take = if num_items <= split_by_main { 
+				  split_by_main = 1;				  
 				  num_items //Take all items at once in this case
 				} else {					
-					num_items / split_by	// Take x number at a time						
+					num_items / split_by_main	// Take x number at a time						
 				};
 	
 	// Number of threads that can be running at a time
 	//let thread_limiter = config.thread_limit;	
 			
 	let mut t: MTimer = MTimer::new("Round 1");
-	while split_by > 0{	
+	while split_by_main > 0{	
 		// This loop is only executed once every x seconds and checks how many threads are running now
 		// If the number is less than the threshold, allow another thread to run
 /*  		loop {
@@ -160,7 +164,7 @@ fn main(){
 		do_intersection(config.clone(),thread_info.clone(),set_counter.clone(),all_sets.clone(),p_map.clone(), start_at, take, shared_main_map.clone());
 		
 		start_at = start_at + take;			
-		split_by-=1;
+		split_by_main-=1;
 	}
 	
 	// Wait for all spawned threads to be finished
@@ -168,7 +172,7 @@ fn main(){
 	let periodic = timer.periodic(Duration::seconds(config.round_one_wait_interval.clone()));
 	loop {
 		periodic.recv();	
-		if thread_info.read().unwrap().finished_count == config.split_by.clone(){
+		if thread_info.read().unwrap().finished_count == config.split_by_main.clone(){
 			break;
 		}
 	} 
@@ -191,8 +195,43 @@ fn main(){
 		println!("\n");
 	} */		
 
-
-	t = MTimer::new("Round 2");
+	
+ 	// Associate sub sets
+	t = MTimer::new("Round 2");	
+	let all_sets_o = all_sets.read().unwrap();
+	let shared_all_sets = Arc::new(all_sets_o.clone());
+	let thread_info = Arc::new(RwLock::new(MyThreads{active_count:0,finished_count:0}));	
+	let mut split_by_subs = config.split_by_subs.clone();	
+	start_at = 0;	
+	take = if all_sets_o.len() <= split_by_subs { 
+				  split_by_subs = 1;				  
+				  all_sets_o.len() //Take all items at once in this case
+				} else {					
+					all_sets_o.len() / split_by_subs	// Take x number at a time						
+				};
+				
+	while split_by_subs > 0{	
+		//println!("subs start at {} take {}",start_at,take  );
+		do_subs(config.clone(),thread_info.clone(),shared_all_sets.clone(),p_map.clone(), start_at, take);
+		start_at = start_at + take;			
+		split_by_subs-=1;
+	}
+	
+	// Wait for all spawned threads to be finished
+	// Check every 5 seconds	
+	let periodic = timer.periodic(Duration::seconds(20));
+	loop {
+		periodic.recv();	
+		//println!("{}-{}",thread_info.read().unwrap().finished_count, config.split_by_subs.clone() );
+		if thread_info.read().unwrap().finished_count == config.split_by_subs.clone(){			
+			break;
+		}
+	} 
+	t.stop(); 	
+	
+	
+/* 
+ 	t = MTimer::new("Round 2");
 	// Go through each set to find sub sets
 	// If a subset was found, add it to every protein's reference that had the superset ref
 	{
@@ -226,7 +265,7 @@ fn main(){
 		}	
 	}
 	t.stop();	
-	//println!("Round Two Done" );	
+	//println!("Round Two Done" );	 */
 	
 	t = MTimer::new("Sort & Summarize");
 	// Now find how many of each set there are along with the proteins that make up the set
@@ -448,6 +487,59 @@ fn main(){
 			}
 		}		
 			
+
+ 		{
+			let mut thread = thread_info.write().unwrap();
+			//thread.active_count -=1;
+			thread.finished_count +=1;
+			//println!("End Thread - Started at {} take {} active threads {} \n", start_at , take, thread.active_count);
+		} 	
+		
+	});		
+}
+
+ fn do_subs(config: Config, thread_info: Arc<RwLock<MyThreads>>, all_sets: Arc<HashMap<Vec<usize>,usize>>, p_map: Arc<RwLock<HashMap<usize,HashSet<usize>>>>, start_at: usize, take: usize){	
+	Thread::spawn( move || {	
+		let mut l_p_map = p_map.read().unwrap().clone();	
+	
+		//let all_sets_o = all_sets.read().unwrap();
+		for (a_k,a_v) in all_sets.iter().skip(start_at).take(take){
+			let a_len = a_k.len();	
+			
+			for (b_k,b_v) in all_sets.iter(){
+				if a_len < b_k.len(){
+					let sub_test: HashSet<usize> = a_k.clone().into_iter().collect();
+					let super_test: HashSet<usize> = b_k.clone().into_iter().collect();
+					
+					if sub_test.is_subset(&super_test){
+						//println!("Superset {:?} subset {:?}", super_test,sub_test  );					
+						
+						{						
+							//let mut p_map_o = p_map.write().unwrap();
+							// For each HashSet<found sets>, see if the set contains the sub set reference
+							for (p_value,p_sets) in l_p_map.iter_mut(){
+								if p_sets.contains(b_v){
+									// Insert the sub set reference						
+									p_sets.insert(*a_v);
+								
+									//println!("Subset insert for protein {:?} subset {:?} of {:?} ", p_value,a_v,b_v );
+								}
+							}
+						}					
+					} 				
+				}			
+			}	
+		}
+		
+		{
+			let mut p_map_o = p_map.write().unwrap();
+			for (p_value,p_sets) in l_p_map.drain(){
+				match p_map_o.get_mut(&p_value) {
+					Some(x) => *x = p_sets,
+					None => (),
+				}			
+			}	
+		}		
 
  		{
 			let mut thread = thread_info.write().unwrap();
