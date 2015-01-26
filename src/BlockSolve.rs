@@ -138,7 +138,8 @@ fn main(){
 	let mut start_at = 0;
 	let mut count = 0;	
 	let mut take = if num_items <= split_by_main { 
-				  split_by_main = 1;				  
+				  split_by_main = 1;	
+				  config.split_by_main = 1;
 				  num_items //Take all items at once in this case
 				} else {					
 					num_items / split_by_main	// Take x number at a time						
@@ -535,7 +536,11 @@ fn main(){
 			let mut p_map_o = p_map.write().unwrap();
 			for (p_value,p_sets) in l_p_map.drain(){
 				match p_map_o.get_mut(&p_value) {
-					Some(x) => *x = p_sets,
+					Some(x) =>{
+					  for n in p_sets.iter(){
+					     x.insert(*n);
+					  }					
+					},
 					None => (),
 				}			
 			}	
