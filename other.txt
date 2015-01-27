@@ -1,1 +1,76 @@
-a
+use std::io::{File, Open, ReadWrite};
+use std::io::BufferedReader;
+use std::collections::HashSet;
+use std::collections::HashMap;
+	
+fn main(){
+	let mut main_map: HashMap<usize,HashSet<usize>> = HashMap::new();	
+	let mut all_sets_t: HashMap<String,usize> = HashMap::new();
+		
+	load_input(&mut main_map);	
+		
+	let mut skip = 0;
+
+	for (a_k, a_v) in main_map.iter(){	
+		 skip +=1;
+		 for (b_k, b_v) in main_map.iter().skip(skip){		
+			let mut intersection : Vec<String> = a_v.intersection(b_v).map(|&x| x.to_string()).collect();				
+			
+			if intersection.len() > 1{	
+				intersection.sort();
+				let key = intersection.connect(" ");
+				if all_sets_t.contains_key(&key){
+					continue;
+				}
+				//println!("{}-{} - {}", a_k,b_k, key );
+				all_sets_t.insert(key,1);
+			}  
+		}	
+	}
+
+    for n in all_sets_t.iter(){
+		println!("{:?}", n );
+	}
+	println!("Sets found {}", all_sets_t.len() );	
+}
+
+
+fn load_input(main_map: &mut HashMap<usize,HashSet<usize>>){
+	// Create a path to the desired file
+    let path = Path::new("input.txt");
+	let display = path.display();	
+	
+	let ofile = match File::open_mode(&path, Open, ReadWrite) {
+		Ok(f) => f,
+		Err(e) => panic!("input file error: {} {}", display,e.desc),
+	};
+
+	let mut file = BufferedReader::new(ofile);
+	for line in file.lines().filter_map(|result| result.ok()) {		
+		let key;
+		let mut c_set = HashSet::new();
+			
+		//Find the index of the first comma to get key		
+		let first_comma = line.find(',');		
+		match first_comma {
+			Some(x) =>{
+				//Split the line from index 0 to the first comma to get the key value				
+				key = line.slice(0,x);								
+			}
+			None => panic!("Did not find a key")			
+		}				
+		
+		let split_line = line.split_str(",").map(|s| s.trim());
+		let mut split_line_vec: Vec<&str> = split_line.collect();
+		split_line_vec.remove(0);
+				
+		for i in split_line_vec.iter(){	
+			let c_ref: usize = i.as_slice().parse::<usize>().unwrap();			
+			c_set.insert(c_ref);
+		}		
+		
+		main_map.insert(key.parse::<usize>().unwrap(),c_set);	
+	}
+}
+
+
