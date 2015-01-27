@@ -7,24 +7,23 @@ using System.Threading.Tasks;
 namespace BlockSolve
 {
 
-    struct Results
+    class Set_info
     {
-            
+        public HashSet<uint> chemical_set = new HashSet<uint>();
+        public HashSet<uint> protein_set = new HashSet<uint>();
     }
    
     class Program
     {
         static Dictionary<uint, HashSet<uint>> main_map = new Dictionary<uint, HashSet<uint>>();
-        static Dictionary<String, uint> all_sets = new Dictionary<String, uint>();
+        static Dictionary<String, Set_info> all_sets = new Dictionary<String, Set_info>();
+
         static void Main(string[] args)
         {
-
             load_input();
+
             int skip = 0;
-        
-            //ProcessIntersections();
-
-
+      
             foreach (KeyValuePair<uint, HashSet<uint>> a_kvp in main_map)
             {
                 skip += 1;
@@ -32,100 +31,65 @@ namespace BlockSolve
                 foreach (KeyValuePair<uint, HashSet<uint>> b_kvp in main_map.Skip(skip))
                 {
                     HashSet<uint> a_v = new HashSet<uint>(a_kvp.Value);
-                    a_v.IntersectWith(b_kvp.Value);                    
-                    //if (a_v.Count > 1)
-                    //{
-                        // Made a block
-                        //List<uint> sorted = a_v.ToList();
-                        //sorted.Sort();
-                        //Console.WriteLine(string.Join(" ", a_v));
-                        string key = string.Join(",", a_v);
-                        
-                        if (all_sets.ContainsKey(key))
-                        {
-                            continue;
-                        }
-                        all_sets.Add(key, 1);
-                        //Console.WriteLine("set [" +key +"]" + " proteins [" + a_kvp.Key + " " + b_kvp.Key + "]");
-
-
-                   // }
-
-                }
-            }     
-
-            foreach (var item in all_sets)
-            {
-                Console.WriteLine(item.Key);
-            }
-        }
-
-        static async void ProcessIntersections()
-        {
-            int start_at = 0;
-            int take = 0;
-            int split_by_main = 100;
-
-            take = main_map.Count / split_by_main;
-
-            List<Task> lt_tasks = new List<Task>();
-
-            while (split_by_main > 0)
-            {
-                //Dictionary<String, uint> task_set_result = await do_intersection(main_map, start_at, take);
-                //foreach (KeyValuePair<String,uint> kvp in task_set_result)
-                //{
-                //    if (!all_sets.ContainsKey(kvp.Key))
-                //    {
-                //        all_sets.Add(kvp.Key,kvp.Value);
-                //    }
-                //}
-                Task t = do_intersection(main_map, start_at, take);
-                lt_tasks.Add(t);
-
-                start_at = start_at + take;
-                split_by_main -= 1;
-            }
-
-            //Wait for all tasks to finish
-            await Task.WhenAll(lt_tasks); 
-             
-        }
-
-
-        public async static Task<Dictionary<String, uint>> do_intersection(Dictionary<uint, HashSet<uint>> main_map, int skip,int take)
-        {
-            int b_count = 0;
-            //Dictionary<String, uint> all_sets = new Dictionary<String, uint>();
-
-            foreach (KeyValuePair<uint, HashSet<uint>> a_kvp in main_map.Skip(skip).Take(take))
-            {              
-                foreach (KeyValuePair<uint, HashSet<uint>> b_kvp in main_map.Skip(b_count))
-                {
-                    HashSet<uint> a_v = new HashSet<uint>(a_kvp.Value);
-                    a_v.IntersectWith(b_kvp.Value);
+                    a_v.IntersectWith(b_kvp.Value);        
+            
                     if (a_v.Count > 1)
                     {
                         // Made a block
+                        Set_info set_info = new Set_info();
 
-                        //Console.WriteLine(string.Join(" ", a_v));
-                        string key = string.Join(" ", a_v);
+                        string key = string.Join(" ", a_v);                        
                         if (all_sets.ContainsKey(key))
                         {
+                            all_sets.TryGetValue(key, out set_info);
+                            set_info.protein_set.Add(a_kvp.Key);
+                            set_info.protein_set.Add(b_kvp.Key);
                             continue;
                         }
-                        all_sets.Add(key, 1);
+                        set_info.chemical_set = a_v;
+                        set_info.protein_set.Add(a_kvp.Key);
+                        set_info.protein_set.Add(b_kvp.Key);
+                        all_sets.Add(key,set_info);
+                        
+
                         //Console.WriteLine("set [" +key +"]" + " proteins [" + a_kvp.Key + " " + b_kvp.Key + "]");
                     }
                 }
+            }     
 
-                b_count += 1;
+            //foreach (var item in all_sets)
+            //{
+            //    Console.WriteLine("C["+item.Key + "] P[" + string.Join(" ",item.Value) + "]");
+            //}
+
+
+            //Round 2. Assign any left out subsets
+            skip = 0;
+            foreach (KeyValuePair<String, Set_info> a_kvp in all_sets)
+            {
+                int a_len = a_kvp.Value.chemical_set.Count;
+
+                skip += 1;
+                foreach (KeyValuePair<String, Set_info> b_kvp in all_sets.Skip(skip))
+                {
+                    // The A chem set should be less in length than the B chem set for the possibility of a subset
+                    if (a_len < b_kvp.Value.chemical_set.Count && a_kvp.Value.chemical_set.IsSubsetOf(b_kvp.Value.chemical_set))
+                    {
+                        // Make sure all the proteins of the superset are also in the subset
+                        a_kvp.Value.protein_set.UnionWith(b_kvp.Value.protein_set);
+                    }                    
+                }
             }
 
-            return all_sets;
+            foreach (var item in all_sets)
+            {
+                Console.WriteLine("C[" + item.Key + "] P[" + string.Join(" ", item.Value.protein_set) + "]");
+            }
+
+
         }
-
-
+        
+        
         static void load_input(){        
             string[] lines = System.IO.File.ReadAllLines(@"input.txt");
 
