@@ -63,14 +63,12 @@ namespace BlockSolve
             //}
 
 
-            //Round 2. Assign any left out subsets
-            skip = 0;
+            //Round 2. Assign any left out subsets         
             foreach (KeyValuePair<String, Set_info> a_kvp in all_sets)
             {
                 int a_len = a_kvp.Value.chemical_set.Count;
-
-                skip += 1;
-                foreach (KeyValuePair<String, Set_info> b_kvp in all_sets.Skip(skip))
+              
+                foreach (KeyValuePair<String, Set_info> b_kvp in all_sets)
                 {
                     // The A chem set should be less in length than the B chem set for the possibility of a subset
                     if (a_len < b_kvp.Value.chemical_set.Count && a_kvp.Value.chemical_set.IsSubsetOf(b_kvp.Value.chemical_set))
