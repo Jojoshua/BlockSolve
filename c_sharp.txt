@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace BlockSolve
 {
@@ -12,18 +13,31 @@ namespace BlockSolve
         public HashSet<uint> chemical_set = new HashSet<uint>();
         public HashSet<uint> protein_set = new HashSet<uint>();
     }
-   
+
     class Program
     {
         static Dictionary<uint, HashSet<uint>> main_map = new Dictionary<uint, HashSet<uint>>();
         static Dictionary<String, Set_info> all_sets = new Dictionary<String, Set_info>();
+        static ConcurrentDictionary<String, Set_info> all_sets2 = new ConcurrentDictionary<String, Set_info>();
 
         static void Main(string[] args)
         {
             load_input();
 
+
+            intersect_parallel(main_map, all_sets2);
+
+            foreach (var item in all_sets2)
+            {
+                Console.WriteLine("C[" + item.Key + "] P[" + string.Join(" ", item.Value.protein_set) + "]");
+            }
+            
+
+            return;
+
+
             int skip = 0;
-      
+
             foreach (KeyValuePair<uint, HashSet<uint>> a_kvp in main_map)
             {
                 skip += 1;
@@ -31,64 +45,119 @@ namespace BlockSolve
                 foreach (KeyValuePair<uint, HashSet<uint>> b_kvp in main_map.Skip(skip))
                 {
                     HashSet<uint> a_v = new HashSet<uint>(a_kvp.Value);
-                    a_v.IntersectWith(b_kvp.Value);        
-            
+                    a_v.IntersectWith(b_kvp.Value);
+
                     if (a_v.Count > 1)
                     {
                         // Made a block
-                        Set_info set_info = new Set_info();
+                        Set_info set_info;
 
-                        string key = string.Join(" ", a_v);                        
-                        if (all_sets.ContainsKey(key))
+                        string key = string.Join(" ", a_v);
+                        if (all_sets.TryGetValue(key, out set_info))
+                        {  
+                            set_info.protein_set.Add(a_kvp.Key);
+                            set_info.protein_set.Add(b_kvp.Key); 
+                        }
+                        else
                         {
-                            all_sets.TryGetValue(key, out set_info);
+                            set_info = new Set_info();
+                            set_info.chemical_set = a_v;
                             set_info.protein_set.Add(a_kvp.Key);
                             set_info.protein_set.Add(b_kvp.Key);
-                            continue;
+                            all_sets.Add(key, set_info);
                         }
-                        set_info.chemical_set = a_v;
-                        set_info.protein_set.Add(a_kvp.Key);
-                        set_info.protein_set.Add(b_kvp.Key);
-                        all_sets.Add(key,set_info);
-                        
+                    
+                        //if (all_sets.ContainsKey(key))
+                        //{
+                        //    all_sets.TryGetValue(key, out set_info);
+                        //    set_info.protein_set.Add(a_kvp.Key);
+                        //    set_info.protein_set.Add(b_kvp.Key);
+                        //    continue;
+                        //}
+                        //set_info.chemical_set = a_v;
+                        //set_info.protein_set.Add(a_kvp.Key);
+                        //set_info.protein_set.Add(b_kvp.Key);
+                        //all_sets.Add(key, set_info);
+
 
                         //Console.WriteLine("set [" +key +"]" + " proteins [" + a_kvp.Key + " " + b_kvp.Key + "]");
                     }
                 }
-            }     
+            }
 
             //foreach (var item in all_sets)
             //{
             //    Console.WriteLine("C["+item.Key + "] P[" + string.Join(" ",item.Value) + "]");
             //}
 
-
+           
             //Round 2. Assign any left out subsets         
-            foreach (KeyValuePair<String, Set_info> a_kvp in all_sets)
-            {
-                int a_len = a_kvp.Value.chemical_set.Count;
-              
-                foreach (KeyValuePair<String, Set_info> b_kvp in all_sets)
-                {
-                    // The A chem set should be less in length than the B chem set for the possibility of a subset
-                    if (a_len < b_kvp.Value.chemical_set.Count && a_kvp.Value.chemical_set.IsSubsetOf(b_kvp.Value.chemical_set))
-                    {
-                        // Make sure all the proteins of the superset are also in the subset
-                        a_kvp.Value.protein_set.UnionWith(b_kvp.Value.protein_set);
-                    }                    
-                }
-            }
+            //foreach (KeyValuePair<String, Set_info> a_kvp in all_sets)
+            //{
+            //    int a_len = a_kvp.Value.chemical_set.Count;
+
+            //    foreach (KeyValuePair<String, Set_info> b_kvp in all_sets)
+            //    {
+            //        // The A chem set should be less in length than the B chem set for the possibility of a subset
+            //        if (a_len < b_kvp.Value.chemical_set.Count && a_kvp.Value.chemical_set.IsSubsetOf(b_kvp.Value.chemical_set))
+            //        {
+            //            // Make sure all the proteins of the superset are also in the subset                        
+            //            a_kvp.Value.protein_set.UnionWith(b_kvp.Value.protein_set);
+            //        }
+            //    }
+            //}
+       
 
             foreach (var item in all_sets)
             {
                 Console.WriteLine("C[" + item.Key + "] P[" + string.Join(" ", item.Value.protein_set) + "]");
+            }         
+        }
+               
+
+        static void intersect_parallel(Dictionary<uint, HashSet<uint>> main_map, ConcurrentDictionary<String, Set_info> all_sets)
+        {
+            int skip = 0;      
+            foreach (KeyValuePair<uint, HashSet<uint>> a_kvp in main_map)
+            {
+                skip += 1;
+              
+                Parallel.ForEach(main_map.Skip(skip), b_kvp =>
+                {
+                    HashSet<uint> a_v = new HashSet<uint>(a_kvp.Value);
+                    a_v.IntersectWith(b_kvp.Value);
+
+                    if (a_v.Count > 1)
+                    {
+                        // Made a block
+                        Set_info set_info =new Set_info();
+
+                        string key = string.Join(" ", a_v);
+                        if (!all_sets.TryGetValue(key,out set_info))
+                        {
+                            set_info = new Set_info();
+                            set_info.chemical_set = a_v;                            
+                            set_info.protein_set.Add(a_kvp.Key);
+                            set_info.protein_set.Add(b_kvp.Key);
+                            all_sets.TryAdd(key, set_info);
+                        } else {
+                            Set_info set_info_new = new Set_info();
+                            set_info_new.chemical_set = set_info.chemical_set;
+                            // Get a copy of the existing protein set
+                            set_info_new.protein_set = new HashSet<uint>(set_info.protein_set);  
+                            // Add these proteins if they dont already exist
+                            set_info_new.protein_set.Add(a_kvp.Key);
+                            set_info_new.protein_set.Add(b_kvp.Key);
+                            all_sets.TryUpdate(key, set_info_new,set_info);
+                        } 
+                    }
+                });
             }
 
-
         }
-        
-        
-        static void load_input(){        
+     
+        static void load_input()
+        {
             string[] lines = System.IO.File.ReadAllLines(@"input.txt");
 
             foreach (string line in lines)
@@ -98,18 +167,19 @@ namespace BlockSolve
 
                 uint protein = uint.Parse(split[0]);
                 HashSet<uint> c_set = new HashSet<uint>();
-                                
 
-                foreach (string s in split.Skip(1)){
+
+                foreach (string s in split.Skip(1))
+                {
                     c_set.Add(uint.Parse(s));
                 }
 
-                main_map.Add(protein, c_set);  
-            } 
+                main_map.Add(protein, c_set);
+            }
         }
 
 
-      
+
 
     }
 }
