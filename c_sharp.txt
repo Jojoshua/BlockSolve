@@ -11,45 +11,60 @@ namespace BlockSolve
     class Set_info
     {
         public HashSet<uint> chemical_set = new HashSet<uint>();
-        public HashSet<uint> protein_set = new HashSet<uint>();
+        public HashSet<uint> protein_set = new HashSet<uint>();      
+    }
+
+    class Input_info
+    {
+        public HashSet<uint> input_chemicals = new HashSet<uint>();
+        public uint index = 0;
     }
    
     class Program
     {
-        static Dictionary<uint, HashSet<uint>> main_map = new Dictionary<uint, HashSet<uint>>();        
+        static Dictionary<uint, Input_info> main_map = new Dictionary<uint, Input_info>();        
         static ConcurrentDictionary<String, Set_info> all_sets = new ConcurrentDictionary<String, Set_info>();
 
         static void Main(string[] args)
         {
             load_input();
 
-            int skip = 0;
+            //int skip = 0;
 
             //foreach (KeyValuePair<uint, HashSet<uint>> a_kvp in main_map)
             //{
                 Parallel.ForEach(main_map, a_kvp =>
                 {
-                    skip += 1;
-
-                    foreach (KeyValuePair<uint, HashSet<uint>> b_kvp in main_map.Skip(skip))
+                    //Console.WriteLine("A Key " + a_kvp.Key +  " Index " + a_kvp.Value.index);
+                    //skip += 1;
+                    //Console.WriteLine("Loop A key " + a_kvp.Key + " skip " + skip);
+                    //foreach (KeyValuePair<uint, HashSet<uint>> b_kvp in main_map.Where(x => x.Key != a_kvp.Key))
+                    foreach (KeyValuePair<uint, Input_info> b_kvp in main_map.Where(x=>x.Value.index > a_kvp.Value.index))
                     {
-                        HashSet<uint> a_v = new HashSet<uint>(a_kvp.Value);
-                        a_v.IntersectWith(b_kvp.Value);
+                        //Console.WriteLine("A Key " + a_kvp.Key + " B Key " + b_kvp.Key + " Index " + b_kvp.Value.index);
+                        //Console.WriteLine("Loop B A key " + a_kvp.Key + " B key " + b_kvp.Key + " skip " + skip);
+                        
+                        HashSet<uint> a_v = new HashSet<uint>(a_kvp.Value.input_chemicals);
+                        a_v.IntersectWith(b_kvp.Value.input_chemicals);
 
                         if (a_v.Count > 1)
                         {
-                            // Made a block
-                            Set_info set_info = new Set_info();
+                            // Made a block                           
 
                             string key = string.Join(" ", a_v);
                             if (all_sets.ContainsKey(key))
                             {
-                                all_sets.TryGetValue(key, out set_info);
-                                set_info.protein_set.Add(a_kvp.Key);
-                                set_info.protein_set.Add(b_kvp.Key);
+                                Set_info old_set_info = new Set_info();
+                                all_sets.TryGetValue(key, out old_set_info);
+
+                                Set_info new_set_info = old_set_info;
+                                new_set_info.protein_set.Add(a_kvp.Key);
+                                new_set_info.protein_set.Add(b_kvp.Key);
+                                all_sets.TryUpdate(key, new_set_info, old_set_info);
                             }
                             else
                             {
+                                 Set_info set_info = new Set_info();
                                 set_info.chemical_set = a_v;
                                 set_info.protein_set.Add(a_kvp.Key);
                                 set_info.protein_set.Add(b_kvp.Key);
@@ -61,8 +76,8 @@ namespace BlockSolve
                     }
                     }); 
                 //}
-            //}                     
-
+            //}       
+                           
             //Round 2. Assign any left out subsets         
             //foreach (KeyValuePair<String, Set_info> a_kvp in all_sets)
             Parallel.ForEach(all_sets, a_kvp =>
@@ -88,7 +103,7 @@ namespace BlockSolve
 
                 if (block_size != item.Value.protein_set.Count * item.Value.chemical_set.Count)
                 {
-                    Console.WriteLine("\n Block Size " + item.Value.protein_set.Count * item.Value.chemical_set.Count);
+                    //Console.WriteLine("\n Block Size " + item.Value.protein_set.Count * item.Value.chemical_set.Count);
                     block_size = item.Value.protein_set.Count * item.Value.chemical_set.Count;
                 }
 
@@ -102,6 +117,7 @@ namespace BlockSolve
         static void load_input(){        
             string[] lines = System.IO.File.ReadAllLines(@"input.txt");
 
+            uint index = 0;
             foreach (string line in lines)
             {
                 //Console.WriteLine("\t" + line);
@@ -115,7 +131,11 @@ namespace BlockSolve
                     c_set.Add(uint.Parse(s));
                 }
 
-                main_map.Add(protein, c_set);  
+                Input_info input_info = new Input_info();
+                input_info.input_chemicals = c_set;
+                input_info.index = index++;
+
+                main_map.Add(protein, input_info);  
             } 
         }
 
