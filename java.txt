@@ -7,12 +7,18 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 
+class Set_info
+{
+    public ArrayList<Integer> chemical_set = new ArrayList<Integer>();
+    public HashSet<Integer> protein_set = new HashSet<Integer>();
+}
 
 public class BlockSolve {
     static HashMap<Integer, HashSet<Integer>> main_map = new HashMap<Integer, HashSet<Integer>>();
-    static HashMap<String, Integer> all_sets = new HashMap<String, Integer>();
+    static HashMap<String, Set_info> all_sets = new HashMap<String, Set_info>();
     
 	public static void main(String[] args) { 	    
 	    try {
@@ -46,27 +52,83 @@ public class BlockSolve {
 				
 				ArrayList<Integer> intersection = new ArrayList<Integer>(a_kvp.getValue());	
 				intersection.retainAll(b_kvp.getValue());
-				Collections.sort(intersection);
+				Collections.sort(intersection);      
 				
-				//if (intersection.size() > 1) {
-					String key = intersection.toString();	
+				if (intersection.size() > 1) {
+					// Made a block
+					Set_info set_info = new Set_info();
 					
+					String key = intersection.toString();						
 					if (all_sets.containsKey(key)) {
-						continue;
+						set_info = all_sets.get(key);
+	                    set_info.protein_set.add(a_kvp.getKey());
+	                    set_info.protein_set.add(b_kvp.getKey());
 					}
-					
-					//System.out.println(a_kvp + "-" + b_kvp + " - " + key);
-					all_sets.put(key, 1);					
-				//}			
+					else
+					{
+		                set_info.chemical_set = intersection;
+		                set_info.protein_set.add(a_kvp.getKey());
+		                set_info.protein_set.add(b_kvp.getKey());
+		                all_sets.put(key,set_info);
+					}					
+
+					//System.out.println(a_kvp + "-" + b_kvp + " - " + key);									
+				}			
 			}		
 			
 		}
 	    
 	    
-	    for (String key : all_sets.keySet()) {
+/*	    for (String key : all_sets.keySet()) {
 	    	System.out.println(key);
+		}    */
+	    
+	    
+	    //Round 2. Assign any left out subsets          
+        Iterator<Entry<String, Set_info>> it_a = all_sets.entrySet().iterator();
+       
+        
+	    while (it_a.hasNext()) {	   
+	    	Entry<String, Set_info> a_kvp = it_a.next();
+	    	
+	    	int a_len = a_kvp.getValue().chemical_set.size();
+	    	
+	    	for (Map.Entry<String, Set_info> b_kvp : all_sets.entrySet()) {
+		    	if (a_len < b_kvp.getValue().chemical_set.size()){		    			
+			    	if (b_kvp.getValue().chemical_set.containsAll(a_kvp.getValue().chemical_set)) {
+			    	    // Make sure all the proteins of the superset are also in the subset
+	                    //a_kvp.getValue().protein_set.UnionWith(b_kvp.getValue().protein_set);			    	
+	                    b_kvp.getValue().protein_set.addAll(a_kvp.getValue().protein_set);	                    
+	                    b_kvp.setValue(b_kvp.getValue());	                    
+			    	} 	    	
+				}		    	    
+	    	}
+	    	
+/*	    	Iterator<Entry<String, Set_info>> it_b = all_sets.entrySet().iterator();		
+		    while (it_b.hasNext()) {			    
+		    	Entry<String, Set_info> b_kvp = it_b.next();
+		    	
+		    	if (a_len < b_kvp.getValue().chemical_set.size()){		    			
+			    	if (b_kvp.getValue().chemical_set.containsAll(a_kvp.getValue().chemical_set)) {
+			    	    // Make sure all the proteins of the superset are also in the subset
+	                    //a_kvp.getValue().protein_set.UnionWith(b_kvp.getValue().protein_set);
+	                    b_kvp.getValue().protein_set.addAll(a_kvp.getValue().protein_set);
+	                    
+	                    b_kvp.setValue(b_kvp.getValue());
+	                    
+			    	} 
+			    			    	
+				}						
+			}*/	
 		}
 	    
+	    for (Entry<String,Set_info> item : all_sets.entrySet()) {
+			ArrayList<Integer> p_list = new ArrayList<Integer>(item.getValue().protein_set);	
+		    Collections.sort(p_list); 
+			
+	    	System.out.println("C" + item.getKey() + " P" + p_list);
+		}
+        
 	      
 	    
 	    
