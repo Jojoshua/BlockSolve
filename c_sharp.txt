@@ -12,7 +12,6 @@ namespace BlockSolve
     {
         public HashSet<uint> chemical_set = new HashSet<uint>();
         public HashSet<uint> protein_set = new HashSet<uint>();
-        public uint block_size = 0;
     }
    
     class Program
