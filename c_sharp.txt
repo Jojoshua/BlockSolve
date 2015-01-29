@@ -44,7 +44,12 @@ namespace BlockSolve
                     //Console.WriteLine("A Key " + a_kvp.Key + " B Key " + b_kvp.Key + " Index " + b_kvp.Value.index);
                     //Console.WriteLine("Loop B A key " + a_kvp.Key + " B key " + b_kvp.Key + " skip " + skip);
 
-                    HashSet<uint> a_v = new HashSet<uint>(a_kvp.Value.input_chemicals);
+                    HashSet<uint> a_v = new HashSet<uint>();
+                    foreach (var item in a_kvp.Value.input_chemicals)
+                    {
+                        a_v.Add(item);
+                    }
+
                     a_v.IntersectWith(b_kvp.Value.input_chemicals);                   
 
                     if (a_v.Count > 1)
