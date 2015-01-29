@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using ExtensionMethods;
 
 namespace BlockSolve
 {
@@ -20,7 +21,8 @@ namespace BlockSolve
         public uint index = 0;
     }
 
-    class Program
+
+    class Program 
     {
         static Dictionary<uint, Input_info> main_map = new Dictionary<uint, Input_info>();
         static ConcurrentDictionary<int, Set_info> all_sets = new ConcurrentDictionary<int, Set_info>();
@@ -44,13 +46,15 @@ namespace BlockSolve
                     //Console.WriteLine("A Key " + a_kvp.Key + " B Key " + b_kvp.Key + " Index " + b_kvp.Value.index);
                     //Console.WriteLine("Loop B A key " + a_kvp.Key + " B key " + b_kvp.Key + " skip " + skip);
 
-                    var tempList = new List<uint>();
+                    var num_elements = 50000;
+                    var tempList = new List<uint>(num_elements);
                     foreach (var item in a_kvp.Value.input_chemicals)
                     {
                         tempList.Add(item);
                     }
-                    HashSet<uint> a_v = new HashSet<uint>(tempList);
+                    var a_v = tempList.ToHashSet();
                     tempList.Clear();
+
 
                     a_v.IntersectWith(b_kvp.Value.input_chemicals);                   
 
@@ -118,7 +122,6 @@ namespace BlockSolve
             }
 
         }
-
 
         static void load_input()
         {
